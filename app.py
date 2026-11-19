@@ -12,7 +12,7 @@ except (KeyError, FileNotFoundError):
 role = st.selectbox('Job Title', ['Machine Learning Engineer','Senior Software Engineer','Data Analyst', 'Prompt Engineer', 'DevOps Engineer', 'Other'])
 if role == "Other":
   st.text_input('Enter you Job Title', 'XXXXXXX')
-model = st.selectbox('Model', ['openai/gpt-oss-20b','openai/gpt-oss-120b'])
+gen_model = st.selectbox('Model', ['openai/gpt-oss-20b','openai/gpt-oss-120b'])
 level = st.selectbox('Difficulty',['Beginner', 'Intermediate', 'Advanced'])
 mode = st.radio('Activity', ['Generate Questions','Generate Code Questions', 'Evaluate Answers', 'Improve Answers'])
 if mode == 'Generate Questions':
@@ -23,4 +23,41 @@ elif mode == 'Generate Code Questions':
 else:
   question = st.text_area('Enter Interview Question here')
   answer = st.text_area('Enter your answer', height =160)
+
+if st.button("Generate AI Response", type = "primary"):
+  if mode in ['Evaluate Answers', 'Improve Answers'] and (not question.strip()) or (not answer.strip()) :
+    st.warning("Please enter a valid Question and Answer")
+    st.stop()
   
+  if mode == "Generate Questions":
+    task = "Generate " + str(count) + " Frequently asked Interview Questions, 3 theory and 2 scenario questions. Do not give answers. Give Hints"
+  elif mode == "Generate Code Questions":
+    task = "Generate "+ str(count) + " Frequently asked coding questions on topic " + topic + "and give hints to solve them. Be accurate."
+  elif mode == "Evaluate Answers":
+    task = "Question : " + question + " My Answer : " + answer + "Evaluate this answer based on concept, relevance, communication, length of answer. Give each rating out of 5 in a list." 
+  elif mode == "Improve Answers":
+    task = "Question : " + question + " My Answer : " + answer + "Improve the answer based on choice of words, key words to include, accurate, concise and clear answer. Do not invent anything about candidate."
+  background = "Job role : " +role+ " Difficulti level "+level
+  with st.spinner("Genrating your answer ... "):
+    try:
+      response = client.chat.completions.create(
+        model = gen_model,
+        messages = [{"role":"system", 
+                     "content":"Act as a Senior Interviewer, both HR and Technical expert"},
+                    {"role" : "user",
+                    "content" : background + task }],
+        temperature = 0.7,
+        max_tokens = 1800 )
+      output = response.choices[0].message.content
+      st.subheader("AI Response " )
+      st.markdown(output)
+      st.download_button("Download Response", output , file_name = "Interview_Response.txt", mime = 'text/plain' )
+    except Exception as e:
+      st.error ("API connection was unsuccessful : ", e)
+      st.info ("Please check your API Key and rate limits")
+st.caption("Powered by Streamlit.io and GitHub. Using LLM API")
+        
+        
+  
+          
+             
